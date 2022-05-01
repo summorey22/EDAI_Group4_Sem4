@@ -1,6 +1,7 @@
 package com.group4.slock
 
 import android.Manifest.permission.*
+import android.annotation.TargetApi
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
@@ -9,6 +10,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
+import android.os.Build
+import android.os.Build.VERSION.SDK
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -39,17 +42,11 @@ class MainActivity : AppCompatActivity() {
         checkBTStatus()
         findBTDevices()
 
-        if(mDeviceList == null){
-            Toast.makeText(this, "ERROR #01: Contact Developers", Toast.LENGTH_SHORT).show()
-        } else {
-            Log.d("PP", mDeviceList.toString())
+        Log.d("PP", mDeviceList.toString())
 
-
+        if (BluetoothAdapter.getDefaultAdapter().state == BluetoothAdapter.STATE_CONNECTED){
+            move()
         }
-
-
-
-
     }
     private fun checkNFCStatus(){
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
@@ -104,33 +101,37 @@ class MainActivity : AppCompatActivity() {
 
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent) {
-            val action = intent.action
-            if (BluetoothDevice.ACTION_FOUND == action) {
-                val device = intent
-                    .getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
-                if (ActivityCompat.checkSelfPermission(
-                        this@MainActivity,
-                        BLUETOOTH_CONNECT
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    ActivityCompat.requestPermissions(this@MainActivity, arrayOf(
-                        BLUETOOTH_CONNECT,
-                        BLUETOOTH_SCAN,
-                        BLUETOOTH_ADMIN
-                    ), 1)
-                }
-                myProgressBar?.isVisible = false
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                val action = intent.action
+                if (BluetoothDevice.ACTION_FOUND == action) {
+                    val device = intent
+                        .getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                    if (ActivityCompat.checkSelfPermission(
+                            this@MainActivity,
+                            BLUETOOTH_CONNECT
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        ActivityCompat.requestPermissions(this@MainActivity, arrayOf(
+                            BLUETOOTH_CONNECT,
+                            BLUETOOTH_SCAN,
+                            BLUETOOTH_ADMIN
+                        ), 1)
+                    }
+                    myProgressBar?.isVisible = false
 
-                val buff = arrayOf(device!!.name, device.address)
-                if(!anotherList.contains(device.address)){
-                    mDeviceList.add(
-                        buff
-                    )
-                }
-                anotherList.add(device.address)
-                myList?.adapter = MyAdaptor(mDeviceList)
-                myList?.layoutManager = LinearLayoutManager(this@MainActivity)
+                    val buff = arrayOf(device!!.name, device.address)
+                    if(!anotherList.contains(device.address)){
+                        mDeviceList.add(
+                            buff
+                        )
+                    }
+                    anotherList.add(device.address)
+                    myList?.adapter = MyAdaptor(mDeviceList)
+                    myList?.layoutManager = LinearLayoutManager(this@MainActivity)
 
+                }else{
+                    //TODO: Add code for android version less than 12
+                }
             }
         }
     }
